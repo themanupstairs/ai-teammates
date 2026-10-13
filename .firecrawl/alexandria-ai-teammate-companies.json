@@ -1,0 +1,17 @@
+{
+  "success": false,
+  "error": "An organization admin must accept the apollo provider's terms (version F-1.0.0) before this request can run. Accept them at https://www.firecrawl.dev/app/alexandria/apollo",
+  "code": "THIRD_PARTY_DATA_TERMS_REQUIRED",
+  "requestId": "ceaa169e-250a-4951-8c29-7594b604652b",
+  "status": 403,
+  "requiresAction": {
+    "type": "accept_terms",
+    "terms": "apollo",
+    "version": "F-1.0.0",
+    "url": "https://www.firecrawl.dev/app/alexandria/apollo"
+  },
+  "receipt": {
+    "requestId": "ceaa169e-250a-4951-8c29-7594b604652b"
+  },
+  "guidance": "Review the provider terms with firecrawl alexandria terms show <provider>. Present the terms to the user and wait for explicit approval. Only then accept with firecrawl alexandria terms accept <provider> --terms-version <version> --digest <sha256> --confirm. If the API-provided link is unavailable, use https://www.firecrawl.dev/app/settings?tab=data-sources. Do not automatically retry or accept."
+}
