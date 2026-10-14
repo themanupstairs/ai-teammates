@@ -1,0 +1,4 @@
+# agent tooling (not needed in the build)
+
+.agents
+.claude
