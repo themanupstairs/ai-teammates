@@ -3,6 +3,7 @@ import { PlusIcon } from "lucide-react"
 import { nanoid } from "nanoid"
 
 import { ChatAvatar } from "@/components/chat-avatar"
+import { BotDialog } from "@/components/bot-dialog"
 import { Button } from "@/components/ui/button"
 import {
   Empty,
@@ -30,10 +31,12 @@ export default async function Page() {
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
-          <Button variant="secondary">
-            <PlusIcon data-icon="inline-start" />
-            Create a new bot
-          </Button>
+          <BotDialog seed={nanoid()}>
+            <Button variant="secondary">
+              <PlusIcon data-icon="inline-start" />
+              Create a new bot
+            </Button>
+          </BotDialog>
         </EmptyContent>
       </Empty>
     </main>
