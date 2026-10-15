@@ -1,34 +1,41 @@
-import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs"
+import { auth } from "@clerk/nextjs/server"
+import { PlusIcon } from "lucide-react"
+import { nanoid } from "nanoid"
 
+import { ChatAvatar } from "@/components/chat-avatar"
 import { Button } from "@/components/ui/button"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 
-export default function Page() {
+export default async function Page() {
+  await auth.protect()
+
   return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
-        </div>
-        <Show when="signed-out">
-          <div className="flex gap-2">
-            <SignInButton>
-              <Button variant="outline">Sign in</Button>
-            </SignInButton>
-            <SignUpButton>
-              <Button>Sign up</Button>
-            </SignUpButton>
-          </div>
-        </Show>
-        <Show when="signed-in">
-          <UserButton />
-        </Show>
-        <div className="font-mono text-xs text-muted-foreground">
-          (Press <kbd>d</kbd> to toggle dark mode)
-        </div>
-      </div>
-    </div>
+    <main className="dark flex min-h-svh bg-background text-foreground">
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia>
+            <ChatAvatar seed={nanoid()} animated />
+          </EmptyMedia>
+          <EmptyTitle>Meet your first bot</EmptyTitle>
+          <EmptyDescription>
+            Every bot gets its own personality, memory, and face. Spin one up
+            and start the conversation.
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Button variant="secondary">
+            <PlusIcon data-icon="inline-start" />
+            Create a new bot
+          </Button>
+        </EmptyContent>
+      </Empty>
+    </main>
   )
 }
