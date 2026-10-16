@@ -3,9 +3,11 @@
 import { useId, useState } from "react"
 import { UserButton } from "@clerk/nextjs"
 import { PlusIcon, UsersIcon } from "lucide-react"
+import Link from "next/link"
 
 import { BotDialog } from "@/components/bot-dialog"
 import { ChatAvatar } from "@/components/chat-avatar"
+import { ChatSearch } from "@/components/chat-search"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -61,6 +63,7 @@ export function AppSidebar({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+        <ChatSearch chats={chats} />
       </SidebarHeader>
       <BotDialog
         seed={seed}
@@ -76,7 +79,11 @@ export function AppSidebar({
 
                 return (
                   <SidebarMenuItem key={chat.id}>
-                    <SidebarMenuButton size="lg" className="h-16 gap-3">
+                    <SidebarMenuButton
+                      render={<Link href={`/chats/${chat.id}`} />}
+                      size="lg"
+                      className="h-16 gap-3"
+                    >
                       <ChatAvatar
                         seed={bot?.avatar ?? chat.id}
                         className="size-8 shrink-0"
