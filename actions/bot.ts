@@ -35,6 +35,6 @@ export async function createBot(input: unknown) {
     return { error: "Couldn't create your bot. Please try again." }
   }
 
-  revalidatePath("/")
+  revalidatePath("/", "layout")
   return { success: true }
 }

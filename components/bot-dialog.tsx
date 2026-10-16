@@ -69,11 +69,21 @@ type BotFormValues = z.infer<typeof createBotSchema>
 export function BotDialog({
   children,
   seed,
+  open: controlledOpen,
+  onOpenChange,
 }: {
-  children: ReactElement
+  children?: ReactElement
   seed: string
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }) {
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = controlledOpen ?? internalOpen
+
+  function setOpen(nextOpen: boolean) {
+    setInternalOpen(nextOpen)
+    onOpenChange?.(nextOpen)
+  }
   const [preset, setPreset] = useState<string[]>([])
   const form = useForm<BotFormValues>({
     resolver: zodResolver(createBotSchema),
@@ -115,7 +125,7 @@ export function BotDialog({
 
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      <DialogTrigger render={children} />
+      {children && <DialogTrigger render={children} />}
       <DialogContent className="dark max-h-[calc(100svh-2rem)] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>New bot</DialogTitle>
