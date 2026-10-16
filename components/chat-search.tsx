@@ -16,6 +16,8 @@ import {
   CommandList,
 } from "@/components/ui/command"
 import { Kbd, KbdGroup } from "@/components/ui/kbd"
+import { useSidebar } from "@/components/ui/sidebar"
+import { cn } from "@/lib/utils"
 import type { UserChat } from "@/queries/bots"
 
 export function ChatSearch({
@@ -24,6 +26,8 @@ export function ChatSearch({
   chats: (UserChat & { lastMessageAge: string })[]
 }) {
   const router = useRouter()
+  const { state, isMobile } = useSidebar()
+  const collapsed = state === "collapsed" && !isMobile
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
@@ -46,8 +50,12 @@ export function ChatSearch({
     <>
       <Button
         type="button"
-        variant="outline"
-        className="h-8 w-full min-w-0 justify-start rounded-lg border border-input bg-transparent px-2.5 py-1 text-base font-normal text-muted-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40"
+        variant={collapsed ? "ghost" : "outline"}
+        size={collapsed ? "icon" : "default"}
+        className={cn(
+          !collapsed &&
+            "h-8 w-full min-w-0 justify-start rounded-lg border border-input bg-transparent px-2.5 py-1 text-base font-normal text-muted-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40"
+        )}
         aria-label="Search chats"
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -55,11 +63,15 @@ export function ChatSearch({
         onClick={() => setOpen(true)}
       >
         <SearchIcon data-icon="inline-start" />
-        Search
-        <KbdGroup className="ml-auto">
-          <Kbd>⌘</Kbd>
-          <Kbd>K</Kbd>
-        </KbdGroup>
+        {!collapsed && (
+          <>
+            Search
+            <KbdGroup className="ml-auto">
+              <Kbd>⌘</Kbd>
+              <Kbd>K</Kbd>
+            </KbdGroup>
+          </>
+        )}
       </Button>
       <CommandDialog
         open={open}
