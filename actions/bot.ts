@@ -1,10 +1,17 @@
 "use server"
 
 import { auth } from "@clerk/nextjs/server"
+import { nanoid } from "nanoid"
 import { revalidatePath } from "next/cache"
 
 import { db } from "@/lib/db"
-import { bots, createBotSchema, insertBotSchema } from "@/lib/db/schema"
+import {
+  bots,
+  chatMembers,
+  chats,
+  createBotSchema,
+  insertBotSchema,
+} from "@/lib/db/schema"
 
 export async function createBot(input: unknown) {
   const { userId } = await auth.protect()
@@ -15,9 +22,15 @@ export async function createBot(input: unknown) {
   }
 
   const values = insertBotSchema.parse({ ...parsed.data, userId })
+  const botId = nanoid()
+  const chatId = nanoid()
 
   try {
-    await db.insert(bots).values(values)
+    await db.batch([
+      db.insert(bots).values({ ...values, id: botId }),
+      db.insert(chats).values({ id: chatId, userId, kind: "direct" }),
+      db.insert(chatMembers).values({ chatId, botId }),
+    ])
   } catch {
     return { error: "Couldn't create your bot. Please try again." }
   }
