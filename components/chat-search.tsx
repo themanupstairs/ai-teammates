@@ -15,7 +15,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
-import { Kbd, KbdGroup } from "@/components/ui/kbd"
+import { Kbd } from "@/components/ui/kbd"
 import { useSidebar } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 import type { UserChat } from "@/queries/bots"
@@ -66,10 +66,7 @@ export function ChatSearch({
         {!collapsed && (
           <>
             Search
-            <KbdGroup className="ml-auto">
-              <Kbd>⌘</Kbd>
-              <Kbd>K</Kbd>
-            </KbdGroup>
+            <Kbd className="ml-auto bg-transparent px-0 font-normal">⌘K</Kbd>
           </>
         )}
       </Button>
@@ -99,7 +96,7 @@ export function ChatSearch({
                     ]}
                     onSelect={() => {
                       setOpen(false)
-                      router.push(`/chats/${chat.id}`)
+                      router.push(`/chat/${chat.id}`)
                     }}
                     className="gap-3 py-3"
                   >

@@ -4,6 +4,7 @@ import { useId, useState } from "react"
 import { UserButton } from "@clerk/nextjs"
 import { PlusIcon, UsersIcon } from "lucide-react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 
 import { BotDialog } from "@/components/bot-dialog"
 import { ChatAvatar } from "@/components/chat-avatar"
@@ -36,6 +37,7 @@ export function AppSidebar({
 }: {
   chats: (UserChat & { lastMessageAge: string })[]
 }) {
+  const pathname = usePathname()
   const [botDialogOpen, setBotDialogOpen] = useState(false)
   const seed = useId()
 
@@ -77,11 +79,14 @@ export function AppSidebar({
             <SidebarMenu>
               {chats.map((chat) => {
                 const bot = chat.members[0]?.bot
+                const isActive = pathname === `/chat/${chat.id}`
 
                 return (
                   <SidebarMenuItem key={chat.id}>
                     <SidebarMenuButton
-                      render={<Link href={`/chats/${chat.id}`} />}
+                      render={<Link href={`/chat/${chat.id}`} />}
+                      isActive={isActive}
+                      aria-current={isActive ? "page" : undefined}
                       size="lg"
                       className="h-16 gap-3 group-data-[collapsible=icon]:justify-center"
                       tooltip={chat.name ?? bot?.name ?? "Untitled chat"}
