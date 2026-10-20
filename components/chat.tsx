@@ -1,9 +1,19 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useCallback, useState } from "react"
 import { useChat } from "@ai-sdk/react"
-import { DefaultChatTransport } from "ai"
+import type { TriggerChatTransport } from "@trigger.dev/sdk/chat"
+import {
+  useLoadTranscript,
+  useTriggerChatTransport,
+} from "@trigger.dev/sdk/chat/react"
+import type { UIMessage } from "ai"
 
+import {
+  loadChatTranscript,
+  mintChatAccessToken,
+  startChatSession,
+} from "@/actions/chat"
 import {
   Conversation,
   ConversationContent,
@@ -26,6 +36,7 @@ import {
 import { Shimmer } from "@/components/ai-elements/shimmer"
 import { ChatAvatar } from "@/components/chat-avatar"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import type { botChat } from "@/trigger/chat"
 
 export function Chat({
   chatId,
@@ -34,13 +45,61 @@ export function Chat({
   chatId: string
   bot: { name: string; avatar: string; job: string }
 }) {
-  const [input, setInput] = useState("")
-  const transport = useMemo(
-    () => new DefaultChatTransport({ api: `/api/chat/${chatId}` }),
-    [chatId]
+  const transport = useTriggerChatTransport<typeof botChat>({
+    task: "bot-chat",
+    accessToken: ({ chatId }) => mintChatAccessToken(chatId),
+    startSession: ({ chatId }) => startChatSession({ chatId }),
+  })
+  const transcript = useLoadTranscript(chatId, loadChatTranscript, {
+    transport,
+  })
+
+  if (transcript.isLoading) {
+    return <div className="min-h-0 flex-1" />
+  }
+
+  return (
+    <ChatConversation
+      chatId={chatId}
+      bot={bot}
+      initialMessages={transcript.messages}
+      transcriptError={transcript.error}
+      transport={transport}
+    />
   )
-  const { messages, sendMessage, status, stop, error } = useChat({ transport })
+}
+
+function ChatConversation({
+  chatId,
+  bot,
+  initialMessages,
+  transcriptError,
+  transport,
+}: {
+  chatId: string
+  bot: { name: string; avatar: string; job: string }
+  initialMessages: UIMessage[]
+  transcriptError?: Error
+  transport: TriggerChatTransport
+}) {
+  const [input, setInput] = useState("")
+  const {
+    messages,
+    sendMessage,
+    status,
+    stop: stopChat,
+    error,
+  } = useChat({
+    id: chatId,
+    messages: initialMessages,
+    transport,
+    resume: initialMessages.length > 0,
+  })
   const isGenerating = status === "submitted" || status === "streaming"
+  const stop = useCallback(() => {
+    stopChat()
+    transport.stopGeneration(chatId)
+  }, [chatId, stopChat, transport])
 
   function handleSubmit(message: PromptInputMessage) {
     const text = message.text.trim()
@@ -89,7 +148,7 @@ export function Chat({
 
       <div className="border-t p-4">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
-          {error && (
+          {(error || transcriptError) && (
             <Alert variant="destructive">
               <AlertTitle>Message failed</AlertTitle>
               <AlertDescription>
