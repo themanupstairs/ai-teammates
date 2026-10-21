@@ -7,7 +7,7 @@ import {
   useLoadTranscript,
   useTriggerChatTransport,
 } from "@trigger.dev/sdk/chat/react"
-import type { UIMessage } from "ai"
+import { getToolName, isToolUIPart } from "ai"
 
 import {
   loadChatTranscript,
@@ -34,9 +34,90 @@ import {
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input"
 import { Shimmer } from "@/components/ai-elements/shimmer"
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolInput,
+  ToolOutput,
+  type ToolPart,
+} from "@/components/ai-elements/tool"
 import { ChatAvatar } from "@/components/chat-avatar"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import type { botChat } from "@/trigger/chat"
+import type { BotChatMessage, botChat } from "@/trigger/chat"
+
+const toolTitles: Record<string, string> = {
+  bash: "Run command",
+  keyboardPress: "Press key",
+  keyboardType: "Type text",
+  listFiles: "List files",
+  mouseClick: "Click mouse",
+  mouseMove: "Move mouse",
+  mouseScroll: "Scroll",
+  readFile: "Read file",
+  showScreen: "Show screen",
+  viewScreen: "View screen",
+  writeFile: "Write file",
+}
+
+function isScreenshotOutput(
+  output: unknown
+): output is { base64: string; mediaType: string } {
+  return (
+    typeof output === "object" &&
+    output !== null &&
+    "base64" in output &&
+    typeof output.base64 === "string" &&
+    "mediaType" in output &&
+    typeof output.mediaType === "string"
+  )
+}
+
+function ChatTool({ part }: { part: ToolPart }) {
+  const toolName = getToolName(part)
+
+  if (toolName === "viewScreen") return null
+
+  const output = part.state === "output-available" ? part.output : undefined
+  const errorText = part.state === "output-error" ? part.errorText : undefined
+  const renderedOutput =
+    toolName === "showScreen" && isScreenshotOutput(output) ? (
+      // The screenshot is intentionally shown only for the explicit showScreen tool.
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        alt="Sandbox screen"
+        className="h-auto w-full rounded-md"
+        src={`data:${output.mediaType};base64,${output.base64}`}
+      />
+    ) : (
+      output
+    )
+
+  return (
+    <Tool
+      defaultOpen={toolName === "showScreen" || part.state === "output-error"}
+    >
+      {part.type === "dynamic-tool" ? (
+        <ToolHeader
+          type={part.type}
+          state={part.state}
+          title={toolTitles[toolName] ?? toolName}
+          toolName={part.toolName}
+        />
+      ) : (
+        <ToolHeader
+          type={part.type}
+          state={part.state}
+          title={toolTitles[toolName] ?? toolName}
+        />
+      )}
+      <ToolContent>
+        <ToolInput input={part.input} />
+        <ToolOutput output={renderedOutput} errorText={errorText} />
+      </ToolContent>
+    </Tool>
+  )
+}
 
 export function Chat({
   chatId,
@@ -50,9 +131,13 @@ export function Chat({
     accessToken: ({ chatId }) => mintChatAccessToken(chatId),
     startSession: ({ chatId }) => startChatSession({ chatId }),
   })
-  const transcript = useLoadTranscript(chatId, loadChatTranscript, {
-    transport,
-  })
+  const transcript = useLoadTranscript<BotChatMessage>(
+    chatId,
+    loadChatTranscript,
+    {
+      transport,
+    }
+  )
 
   if (transcript.isLoading) {
     return <div className="min-h-0 flex-1" />
@@ -78,7 +163,7 @@ function ChatConversation({
 }: {
   chatId: string
   bot: { name: string; avatar: string; job: string }
-  initialMessages: UIMessage[]
+  initialMessages: BotChatMessage[]
   transcriptError?: Error
   transport: TriggerChatTransport
 }) {
@@ -89,7 +174,7 @@ function ChatConversation({
     status,
     stop: stopChat,
     error,
-  } = useChat({
+  } = useChat<BotChatMessage>({
     id: chatId,
     messages: initialMessages,
     transport,
@@ -123,14 +208,26 @@ function ChatConversation({
           ) : (
             messages.map((message) => (
               <Message from={message.role} key={message.id}>
-                <MessageContent>
-                  {message.parts.map((part, index) =>
-                    part.type === "text" ? (
-                      <MessageResponse key={`${message.id}-${index}`}>
-                        {part.text}
-                      </MessageResponse>
-                    ) : null
-                  )}
+                <MessageContent
+                  className={
+                    message.role === "assistant" ? "w-full" : undefined
+                  }
+                >
+                  {message.parts.map((part, index) => {
+                    if (part.type === "text") {
+                      return (
+                        <MessageResponse key={`${message.id}-${index}`}>
+                          {part.text}
+                        </MessageResponse>
+                      )
+                    }
+
+                    if (isToolUIPart(part)) {
+                      return <ChatTool key={part.toolCallId} part={part} />
+                    }
+
+                    return null
+                  })}
                 </MessageContent>
               </Message>
             ))

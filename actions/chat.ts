@@ -4,7 +4,7 @@ import { auth as triggerAuth } from "@trigger.dev/sdk"
 import { chat, defaultStorage } from "@trigger.dev/sdk/ai"
 
 import { getChat } from "@/queries/chats"
-import type { botChat } from "@/trigger/chat"
+import type { BotChatMessage, botChat } from "@/trigger/chat"
 
 const startSession = chat.createStartSessionAction<typeof botChat>("bot-chat")
 const loadTranscript = chat.createLoadTranscriptAction(defaultStorage)
@@ -39,5 +39,10 @@ export async function loadChatTranscript(params: {
   limit?: number
 }) {
   await requireChatOwner(params.chatId)
-  return loadTranscript(params)
+  const transcript = await loadTranscript(params)
+
+  return {
+    ...transcript,
+    messages: transcript.messages as BotChatMessage[],
+  }
 }

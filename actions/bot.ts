@@ -5,6 +5,7 @@ import { and, eq, inArray } from "drizzle-orm"
 import { nanoid } from "nanoid"
 import { revalidatePath } from "next/cache"
 
+import { createSandbox, deleteSandbox } from "@/lib/daytona"
 import { db } from "@/lib/db"
 import {
   bots,
@@ -26,13 +27,28 @@ export async function createBot(input: unknown) {
   const botId = nanoid()
   const chatId = nanoid()
 
+  let sandboxId: string
+
+  try {
+    const sandbox = await createSandbox()
+    sandboxId = sandbox.id
+  } catch {
+    return { error: "Couldn't create your bot. Please try again." }
+  }
+
   try {
     await db.batch([
-      db.insert(bots).values({ ...values, id: botId }),
+      db.insert(bots).values({ ...values, id: botId, sandboxId }),
       db.insert(chats).values({ id: chatId, userId, kind: "direct" }),
       db.insert(chatMembers).values({ chatId, botId }),
     ])
   } catch {
+    try {
+      await deleteSandbox(sandboxId)
+    } catch {
+      // The bot was not created, so cleanup is best-effort.
+    }
+
     return { error: "Couldn't create your bot. Please try again." }
   }
 
@@ -71,12 +87,20 @@ export async function deleteBot(botId: string) {
 
   try {
     const bot = await db.query.bots.findFirst({
-      columns: { id: true },
+      columns: { id: true, sandboxId: true },
       where: and(eq(bots.id, botId), eq(bots.userId, userId)),
     })
 
     if (!bot) {
       return { error: "Couldn't find that bot." }
+    }
+
+    if (bot.sandboxId) {
+      try {
+        await deleteSandbox(bot.sandboxId)
+      } catch {
+        return { error: "Couldn't delete your bot. Please try again." }
+      }
     }
 
     const directChatIds = db
