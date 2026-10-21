@@ -14,24 +14,20 @@ import {
   mintChatAccessToken,
   startChatSession,
 } from "@/actions/chat"
-import {
-  Conversation,
-  ConversationContent,
-  ConversationEmptyState,
-  ConversationScrollButton,
-} from "@/components/ai-elements/conversation"
-import {
-  Message,
-  MessageContent,
-  MessageResponse,
-} from "@/components/ai-elements/message"
+import { ConversationEmptyState } from "@/components/ai-elements/conversation"
+import { MessageResponse } from "@/components/ai-elements/message"
 import {
   PromptInput,
+  PromptInputActionMenu,
+  PromptInputActionMenuContent,
+  PromptInputActionMenuItem,
+  PromptInputActionMenuTrigger,
   PromptInputBody,
   PromptInputFooter,
   type PromptInputMessage,
   PromptInputSubmit,
   PromptInputTextarea,
+  PromptInputTools,
 } from "@/components/ai-elements/prompt-input"
 import { Shimmer } from "@/components/ai-elements/shimmer"
 import {
@@ -44,6 +40,16 @@ import {
 } from "@/components/ai-elements/tool"
 import { ChatAvatar } from "@/components/chat-avatar"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Bubble, BubbleContent } from "@/components/ui/bubble"
+import { Message, MessageContent } from "@/components/ui/message"
+import {
+  MessageScroller,
+  MessageScrollerButton,
+  MessageScrollerContent,
+  MessageScrollerItem,
+  MessageScrollerProvider,
+  MessageScrollerViewport,
+} from "@/components/ui/message-scroller"
 import type { BotChatMessage, botChat } from "@/trigger/chat"
 
 const toolTitles: Record<string, string> = {
@@ -197,54 +203,84 @@ function ChatConversation({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <Conversation>
-        <ConversationContent className="mx-auto w-full max-w-3xl">
-          {messages.length === 0 ? (
-            <ConversationEmptyState
-              icon={<ChatAvatar seed={bot.avatar} className="size-12" />}
-              title={`Chat with ${bot.name}`}
-              description={`${bot.job}. Send a message to get started.`}
-            />
-          ) : (
-            messages.map((message) => (
-              <Message from={message.role} key={message.id}>
-                <MessageContent
-                  className={
-                    message.role === "assistant" ? "w-full" : undefined
-                  }
-                >
-                  {message.parts.map((part, index) => {
-                    if (part.type === "text") {
-                      return (
-                        <MessageResponse key={`${message.id}-${index}`}>
-                          {part.text}
-                        </MessageResponse>
-                      )
-                    }
+      <MessageScrollerProvider autoScroll defaultScrollPosition="end">
+        <MessageScroller>
+          <MessageScrollerViewport aria-label="Chat messages">
+            <MessageScrollerContent className="p-4">
+              {messages.length === 0 ? (
+                <ConversationEmptyState
+                  icon={<ChatAvatar seed={bot.avatar} className="size-12" />}
+                  title={`Chat with ${bot.name}`}
+                  description={`${bot.job}. Send a message to get started.`}
+                />
+              ) : (
+                messages.map((message) => {
+                  const align = message.role === "user" ? "end" : "start"
 
-                    if (isToolUIPart(part)) {
-                      return <ChatTool key={part.toolCallId} part={part} />
-                    }
+                  return (
+                    <MessageScrollerItem
+                      key={message.id}
+                      messageId={message.id}
+                      scrollAnchor={message.role === "user"}
+                    >
+                      <Message align={align}>
+                        <MessageContent>
+                          {message.parts.map((part, index) => {
+                            if (part.type === "text") {
+                              return (
+                                <Bubble
+                                  align={align}
+                                  key={`${message.id}-${index}`}
+                                  variant={
+                                    message.role === "user"
+                                      ? "secondary"
+                                      : "muted"
+                                  }
+                                >
+                                  <BubbleContent>
+                                    <MessageResponse>
+                                      {part.text}
+                                    </MessageResponse>
+                                  </BubbleContent>
+                                </Bubble>
+                              )
+                            }
 
-                    return null
-                  })}
-                </MessageContent>
-              </Message>
-            ))
-          )}
-          {status === "submitted" && (
-            <Message from="assistant">
-              <MessageContent>
-                <Shimmer>Thinking…</Shimmer>
-              </MessageContent>
-            </Message>
-          )}
-        </ConversationContent>
-        <ConversationScrollButton />
-      </Conversation>
+                            if (isToolUIPart(part)) {
+                              return (
+                                <ChatTool key={part.toolCallId} part={part} />
+                              )
+                            }
 
-      <div className="border-t p-4">
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
+                            return null
+                          })}
+                        </MessageContent>
+                      </Message>
+                    </MessageScrollerItem>
+                  )
+                })
+              )}
+              {status === "submitted" && (
+                <MessageScrollerItem messageId="pending" scrollAnchor>
+                  <Message align="start">
+                    <MessageContent>
+                      <Bubble align="start" variant="muted">
+                        <BubbleContent>
+                          <Shimmer>Thinking…</Shimmer>
+                        </BubbleContent>
+                      </Bubble>
+                    </MessageContent>
+                  </Message>
+                </MessageScrollerItem>
+              )}
+            </MessageScrollerContent>
+          </MessageScrollerViewport>
+          <MessageScrollerButton />
+        </MessageScroller>
+      </MessageScrollerProvider>
+
+      <div className="p-4 pt-2">
+        <div className="flex w-full flex-col gap-3">
           {(error || transcriptError) && (
             <Alert variant="destructive">
               <AlertTitle>Message failed</AlertTitle>
@@ -258,11 +294,20 @@ function ChatConversation({
               <PromptInputTextarea
                 value={input}
                 onChange={(event) => setInput(event.currentTarget.value)}
-                placeholder={`Message ${bot.name}`}
                 disabled={isGenerating}
               />
             </PromptInputBody>
-            <PromptInputFooter className="justify-end">
+            <PromptInputFooter>
+              <PromptInputTools>
+                <PromptInputActionMenu>
+                  <PromptInputActionMenuTrigger aria-label="Add" />
+                  <PromptInputActionMenuContent>
+                    <PromptInputActionMenuItem disabled>
+                      Attachments are not available yet
+                    </PromptInputActionMenuItem>
+                  </PromptInputActionMenuContent>
+                </PromptInputActionMenu>
+              </PromptInputTools>
               <PromptInputSubmit
                 status={status}
                 onStop={stop}
